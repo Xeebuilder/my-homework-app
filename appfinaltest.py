@@ -194,12 +194,12 @@ def check_access():
     app_password = st.text_input("Contraseña de la Aplicación:", type="password", placeholder="Escribe la clave de la app...")
     
     if st.button("🔑 Entrar"):
-        if app_password == "miPassword123":
+        if app_password == "12345678":
             try:
                 # -------------------------------------------------------------------------
                 # REEMPLAZA EL TEXTO DE ABAJO POR TU CLAVE DE OPENAI EN BASE64
                 # -------------------------------------------------------------------------
-                key_ofuscada = "ZXstcHJvai1Bc3NhbXBsZWtleXJlYWxseWxvbmdzdHJpbmc..." 
+                key_ofuscada = "c2stcHJvai1BZlFuUnlnd2NQLTYwNEdvSEl6ZUFnRU12RXF4azNKQjVMQkdzeUNRbnc1OC0tNG5xZEhaUGVfdmZFSXh5MlR2T0pPX1ZsVzN6UlQzQmxia0ZKdWs5eWdsX2JTUE14ajBCaHhZcndxZi05T0k4UWdQQTN4d05RbFg2THdUVXNDdlA3LTNYc3RNcUt5Yll5Qlo5S01OMk9RNzRxd0E=" 
                 
                 key_descifrada = base64.b64decode(key_ofuscada).decode('utf-8')
                 st.session_state["authenticated"] = True
