@@ -9,12 +9,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 # --- CONFIGURACIÓN DE LA PÁGINA WEB ---
 st.set_page_config(
-    page_title="Generador de Tareas Universal", 
+    page_title="Plataforma de Redacción Académica", 
     page_icon="📝", 
     layout="centered"
 )
 
-# --- INYECCIÓN DE ESTILOS CSS AVANZADOS (Diseño UI/UX Compacto) ---
+# --- INYECCIÓN DE ESTILOS CSS AVANZADOS (Diseño UI/UX Premium) ---
 st.markdown(f"""
     <style>
     /* Fondo global de la aplicación: Tono Arena/Hueso #E5D8C8 */
@@ -24,7 +24,7 @@ st.markdown(f"""
     
     /* Contenedor principal del bloque de contenido */
     .main .block-container {{
-        padding-top: 2rem;
+        padding-top: 1.5rem;
         padding-bottom: 3rem;
         max-width: 740px;
     }}
@@ -42,15 +42,22 @@ st.markdown(f"""
         color: #FFFFFF !important;
     }}
     
-    /* Título principal con estilo Banner */
+    /* Título principal con estilo Banner Dinámico */
     .header-banner {{
         background-color: #FAF8F5;
         border: 1px solid rgba(43, 27, 23, 0.15);
         border-radius: 16px;
-        padding: 2rem;
+        padding: 2.2rem;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        transition: all 0.3s ease;
+    }}
+    
+    /* Variación sutil para el modo informe (Borde izquierdo destacado) */
+    .banner-informe {{
+        border-left: 6px solid #4A322B !important;
+        background-color: #FDFBF7;
     }}
     
     h1 {{
@@ -59,6 +66,28 @@ st.markdown(f"""
         margin-bottom: 0.5rem !important;
     }}
     
+    /* Estilos personalizados para las pestañas nativas de Streamlit */
+    div[data-testid="stTabs"] button {{
+        background-color: #FAF8F5 !important;
+        color: #2B1B17 !important;
+        border: 1px solid rgba(43, 27, 23, 0.12) !important;
+        border-radius: 10px 10px 0px 0px !important;
+        padding: 0.6rem 1.5rem !important;
+        font-weight: 600 !important;
+        font-size: 1.05rem !important;
+        margin-right: 4px !important;
+    }}
+    
+    div[data-testid="stTabs"] button[aria-selected="true"] {{
+        background-color: #2B1B17 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #2B1B17 !important;
+    }}
+    
+    div[data-testid="stTabs"] button[aria-selected="true"] p {{
+        color: #FFFFFF !important;
+    }}
+
     /* Etiquetas de los componentes nativos */
     div[data-testid="stWidgetLabel"] p {{
         color: #2B1B17 !important;
@@ -76,7 +105,7 @@ st.markdown(f"""
         margin-bottom: 1.5rem !important;
     }}
     
-    /* Contenedor del Radio Button ultra compacto y estilizado */
+    /* Selector de radio de entrada optimizado */
     div[data-testid="stRadio"] {{
         background-color: #FAF8F5 !important;
         border: 1px solid rgba(43, 27, 23, 0.12) !important;
@@ -86,12 +115,11 @@ st.markdown(f"""
         margin-bottom: 1.5rem !important;
     }}
     
-    /* Reducir espacio interno de las opciones del radio */
     div[data-testid="stRadio"] > div {{
         gap: 0.5rem !important;
     }}
     
-    /* Diseño de Píldoras / Bloques para los Temas Listos */
+    /* Píldoras para los Temas Listos */
     .tema-badge {{
         background-color: #EAE2D5;
         border-left: 4px solid #2B1B17;
@@ -128,7 +156,6 @@ st.markdown(f"""
         color: #FFFFFF !important;
     }}
     
-    /* Efecto Hover Avanzado */
     div.stButton > button:hover, div[data-testid="stFileUploader"] button:hover {{
         background-color: #4A322B !important;
         border-color: #4A322B !important;
@@ -217,15 +244,8 @@ if check_access():
 
     client = openai.OpenAI(api_key=st.session_state["user_api_key"])
 
-    # --- Encabezado Principal Rediseñado ---
-    st.markdown('''
-        <div class="header-banner">
-            <h1>📝 Generador de Asignaciones Pro</h1>
-            <p style="font-size: 1.1rem; font-weight: 500; margin: 0; color: #2B1B17; opacity: 0.85;">
-                Transforma capturas o apuntes en documentos estructurados profesionales con el formato ideal para cada ocasión.
-            </p>
-        </div>
-    ''', unsafe_allow_html=True)
+    # --- NAVEGACIÓN SUPERIOR POR PESTAÑAS (BOTONES DE MODO) ---
+    tab_investigacion, tab_informe = st.tabs(["🔬 Modo Investigación", "📊 Modo Informe Complejo"])
 
     def corregir_capitales_y_ortografia(texto):
         reemplazos = {
@@ -237,199 +257,216 @@ if check_access():
         texto = re.sub(r'(^[a-z]|(?<=\.\s)[a-z])', lambda m: m.group(1).upper(), texto)
         return texto
 
-    # --- CONFIGURACIÓN DE PARÁMETROS DEL GENERADOR ---
-    col1, col2 = st.columns(2)
-    
-    with col1:
+    # Lógica compartida para procesar y renderizar contenido según la pestaña activa
+    def ejecutar_generador(modo_activo):
+        temas_extraidos = []
+        
         st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #2B1B17; margin-bottom: 0.3rem;">🛠️ Método de entrada</div>', unsafe_allow_html=True)
-        opcion = st.radio("Entrada:", ("Mediante una Imagen Scan", "Mediante Texto Manual"), label_visibility="collapsed")
-        
-    with col2:
-        st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #2B1B17; margin-bottom: 0.3rem;">🚀 Modo de Redacción</div>', unsafe_allow_html=True)
-        modo_redaccion = st.radio("Modo:", ("Modo Investigación", "Modo Informe Complejo"), label_visibility="collapsed")
+        opcion = st.radio(f"Entrada ({modo_activo}):", ("Mediante una Imagen Scan", "Mediante Texto Manual"), label_visibility="collapsed", key=f"radio_{modo_activo}")
 
-    temas_extraidos = []
-
-    if opcion == "Mediante una Imagen Scan":
-        uploaded_file = st.file_uploader("Arrastra o selecciona la captura de tu asignación:", type=["jpg", "jpeg", "png"])
-        if uploaded_file is not None:
-            st.image(uploaded_file, caption="📸 Vista previa de la captura", use_container_width=True)
-            
-            if st.button("✨ Analizar y Estructurar Asignación"):
-                with st.spinner("La IA está leyendo los conceptos y organizando los temas..."):
-                    try:
-                        base64_image = base64.b64encode(uploaded_file.read()).decode('utf-8')
-                        prompt_vision = (
-                            "Analiza detalladamente esta imagen de una asignación escolar o universitaria.\n\n"
-                            "REGLAS CRÍTICAS DE EXTRACCIÓN:\n"
-                            "1. Descarta por completo cualquier dato administrativo, fechas de entrega, ponderaciones, "
-                            "modalidades, palabras como 'defensas', 'informe escrito', 'evaluación', o nombres de materias.\n"
-                            "2. Identifica cuál es el TEMA central o materia de desarrollo.\n"
-                            "3. Si encuentras subpuntos genéricos como 'Concepto', 'Características', 'Impacto económico', "
-                            "NO los devuelvas solos. Devuelvelos fusionados con el tema al que pertenecen de forma lógica.\n\n"
-                            "Devuelve únicamente los temas definitivos listos para redactar, separados por comas. No incluyas números, viñetas ni explicaciones."
-                        )
-                        
-                        response = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[{"role": "user", "content": [
-                                {"type": "text", "text": prompt_vision},
-                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-                            ]}]
-                        )
-                        contenido = response.choices[0].message.content
-                        for etiqueta in ["Tema principal:", "Tema global:", "Puntos:", "Subpuntos:", "Temas:"]:
-                            contenido = contenido.replace(etiqueta, "")
-                        
-                        st.session_state['temas'] = [tema.strip() for tema in contenido.split(',') if tema.strip()]
-                        st.toast("¡Temas leídos de forma exitosa!", icon="🚀")
-                    except Exception as e:
-                        st.error(f"Error analizando la imagen: {e}")
-
-    elif opcion == "Mediante Texto Manual":
-        entrada = st.text_area("Pega o escribe la lista de temas (separados por comas):", 
-                               placeholder="Ej: Concepto y características de las células, Leyes de Mendel en la genética moderna", height=120)
-        if st.button("⚙️ Cargar Temas"):
-            if entrada:
-                st.session_state['temas'] = [tema.strip() for tema in entrada.split(',') if tema.strip()]
-                st.toast("Temas guardados.", icon="✅")
-            else:
-                st.warning("El campo de texto está vacío.")
-
-    # Renderizado y procesamiento de los documentos
-    if 'temas' in st.session_state:
-        temas_extraidos = st.session_state['temas']
-        palabras_prohibidas = ["4to año", "lunes", "martes", "miércoles", "jueves", "viernes", "investigación", "entrega", "individual", "ponderación"]
-        
-        temas_finales = []
-        for t in temas_extraidos:
-            t_limpio = re.sub(r'^\d+[\s\.\:\-\"\']*', '', t).strip(' "\'')
-            if t_limpio and not any(p in t_limpio.lower() for p in palabras_prohibidas):
-                temas_finales.append(t_limpio)
-
-        if temas_finales:
-            st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-            st.markdown(f"<h3 style='margin-bottom: 1rem;'>📋 Puntos identificados ({modo_redaccion}):</h3>", unsafe_allow_html=True)
-            for item in temas_finales:
-                st.markdown(f'<div class="tema-badge">{item}</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            if st.button(f"🚀 Iniciar {modo_redaccion}"):
-                doc = Document()
-                progreso = st.progress(0)
-                status_text = st.empty()
-
-                for i, tema in enumerate(temas_finales):
-                    numero = i + 1
-                    status_text.markdown(f"⏳ **Procesando [{numero}/{len(temas_finales)}]:** *{tema}*")
-                    
-                    t_clean = tema.replace("-", "-").replace("•", "").strip()
-                    t_clean = corregir_capitales_y_ortografia(t_clean.strip('¿?'))
-                    if len(t_clean) > 0:
-                        t_clean = t_clean[0].upper() + t_clean[1:]
-                    
-                    t_low = t_clean.lower()
-                    es_pregunta = t_low.startswith(("que", "como", "cual", "por que", "por qué", "quien", "quién", "donde", "cómo", "qué", "cuál"))
-                    titulo_final = f"{numero}. ¿{t_clean}?" if es_pregunta else f"{numero}. {t_clean}"
-
-                    # --- CAMBIO DINÁMICO DE PROMPTS SEGÚN EL MODO ---
-                    if modo_redaccion == "Modo Investigación":
-                        # Tu prompt premium original de respuestas concisas y dinámicas
-                        es_tema_importante = any(palabra in tema.lower() for palabra in ["gobierno", "transicion", "transición", "impacto", "situacion", "situación", "leyes", "teoria"])
-                        rango_palabras = "entre 160 y 180 palabras" if es_tema_importante else "entre 115 y 125 palabras"
-                        formato_lista = " DEBES incluir una lista formal estructurada con viñetas 'Componente: descripción'." if i % 2 == 0 else " No uses listas, redacta completamente en párrafos continuos y fluidos."
-                        
-                        instrucciones_redaccion = (
-                            f"Eres un académico e investigador experto en la materia correspondiente al tema asignado. Desarrolla el punto solicitado con absoluto rigor conceptual.\n"
-                            f"REGLA CRÍTICA DE CONTEXTO: Enfócate ÚNICAMENTE en el concepto mencionado en el título de la tarea. No te desvíes.\n"
-                            f"REGLA CRÍTICA DE EXTENSIÓN: El texto completo debe tener {rango_palabras}.\n"
-                            f"No incluyas títulos en tu respuesta. Empieza directo con el desarrollo. Prohibido usar el signo de punto y coma (;).\n"
-                            f"MINÚSCULAS Y MAYÚSCULAS: Todo el texto regular debe ir en minúsculas, EXCEPTO la primera letra de cada oración y la primera letra de nombres propios.\n"
-                            f"LISTAS: Usa el símbolo •. El formato obligatorio de cada punto debe ser 'Componente: descripción breve' (máximo 20 palabras por punto).{formato_lista}"
-                        )
-                    else:
-                        # NUEVO MODO INFORME: Largo, con hitos cronológicos, datos numéricos y acontecimientos críticos
-                        instrucciones_redaccion = (
-                            f"Eres un analista de datos e historiador experto. Desarrolla un informe complejo y exhaustivo sobre el tema asignado.\n"
-                            f"REGLA DE EXTENSIÓN: Debe ser un desarrollo de largo alcance (entre 280 y 350 palabras) con alta densidad de información técnica.\n"
-                            f"REGLAS ESTRUCTURALES OBLIGATORIAS:\n"
-                            f"1. El desarrollo debe incluir obligatoriamente datos estadísticos, estimaciones numéricas o métricas relevantes para el tema.\n"
-                            f"2. Debes listar explícitamente al menos 2 acontecimientos históricos o hitos críticos asociados a este tema, indicando sus FECHAS exactas o años de suceso.\n"
-                            f"3. Prohibido usar punto y coma (;). No añadas títulos ni conclusiones genéricas, ve directo al grano.\n"
-                            f"4. Organiza la información mezclando párrafos narrativos fluidos con secciones analíticas utilizando viñetas fijas (•) para desglosar la cronología de los hechos importantes."
-                        )
-
-                    try:
-                        response = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[
-                                {"role": "system", "content": instrucciones_redaccion},
-                                {"role": "user", "content": f"Desarrolle un reporte exhaustivo exclusivo para el punto: '{tema}'."}
-                            ],
-                            temperature=0.3
-                        )
-                        
-                        texto_generado = response.choices[0].message.content.replace("*", "").replace(";", ".")
-                        texto_generado = corregir_capitales_y_ortografia(texto_generado)
-
-                        # --- CONSTRUCCIÓN DEL WORD ---
-                        h = doc.add_paragraph()
-                        run_h = h.add_run(titulo_final)
-                        run_h.bold = True
-                        run_h.font.name = 'Canva Sans'
-                        run_h.font.size = Pt(15)
-
-                        lineas = texto_generado.split('\n')
-                        for linea in lineas:
-                            linea = linea.strip()
-                            if not linea: continue
-                            
-                            if not linea.startswith("•") and len(linea.split()) > 65:
-                                puntos = linea.split('. ')
-                                mitad = len(puntos) // 2
-                                bloques = [". ".join(puntos[:mitad]) + ".", ". ".join(puntos[mitad:])] if mitad > 0 else [linea]
-                            else:
-                                bloques = [linea]
-
-                            for bloque in bloques:
-                                p = doc.add_paragraph()
-                                if bloque.strip().startswith("•"):
-                                    p.add_run("• ").bold = True
-                                    cont = bloque.strip().lstrip("• ").strip()
-                                    if ":" in cont:
-                                        sub, desc = cont.split(":", 1)
-                                        run_sub = p.add_run(f"{sub.strip()}:")
-                                        run_sub.bold = True
-                                        p.add_run(desc)
-                                    else:
-                                        p.add_run(cont)
-                                    p.paragraph_format.left_indent = Pt(24)
-                                else:
-                                    p.add_run(bloque.strip())
-                                    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                                
-                                for run in p.runs:
-                                    run.font.name = 'Canva Sans'
-                                    run.font.size = Pt(13)
-
-                        doc.add_paragraph()
-                    except Exception as e:
-                        st.error(f"Error generando el tema {tema}: {e}")
-                    
-                    progreso.progress(int((numero / len(temas_finales)) * 100))
-
-                status_text.success("🎉 ¡El informe ha sido completado con éxito total!")
+        if opcion == "Mediante una Imagen Scan":
+            uploaded_file = st.file_uploader("Arrastra o selecciona la captura de tu asignación:", type=["jpg", "jpeg", "png"], key=f"file_{modo_activo}")
+            if uploaded_file is not None:
+                st.image(uploaded_file, caption="📸 Vista previa de la captura", use_container_width=True)
                 
-                bio = io.BytesIO()
-                doc.save(bio)
-                bio.seek(0)
+                if st.button("✨ Analizar y Estructurar Asignación", key=f"btn_scan_{modo_activo}"):
+                    with st.spinner("La IA está leyendo los conceptos y organizando los temas..."):
+                        try:
+                            base64_image = base64.b64encode(uploaded_file.read()).decode('utf-8')
+                            prompt_vision = (
+                                "Analiza detalladamente esta imagen de una asignación escolar o universitaria.\n\n"
+                                "REGLAS CRÍTICAS DE EXTRACCIÓN:\n"
+                                "1. Descarta por completo cualquier dato administrativo, fechas de entrega, ponderaciones, "
+                                "modalidades, palabras como 'defensas', 'informe escrito', 'evaluación', o nombres de materias.\n"
+                                "2. Identifica cuál es el TEMA central o materia de desarrollo.\n"
+                                "3. Si encuentras subpuntos genéricos como 'Concepto', 'Características', 'Impacto económico', "
+                                "NO los devuelvas solos. Devuelvelos fusionados con el tema al que pertenecen de forma lógica.\n\n"
+                                "Devuelve únicamente los temas definitivos listos para redactar, separados por comas. No incluyas números, viñetas ni explicaciones."
+                            )
+                            
+                            response = client.chat.completions.create(
+                                model="gpt-4o",
+                                messages=[{"role": "user", "content": [
+                                    {"type": "text", "text": prompt_vision},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                                ]}]
+                            )
+                            contenido = response.choices[0].message.content
+                            for etiqueta in ["Tema principal:", "Tema global:", "Puntos:", "Subpuntos:", "Temas:"]:
+                                contenido = contenido.replace(etiqueta, "")
+                            
+                            st.session_state[f'temas_{modo_activo}'] = [tema.strip() for tema in contenido.split(',') if tema.strip()]
+                            st.toast("¡Temas leídos de forma exitosa!", icon="🚀")
+                        except Exception as e:
+                            st.error(f"Error analizando la imagen: {e}")
 
-                st.markdown('<div style="margin-top: 1rem;"></div>', unsafe_allow_html=True)
-                st.download_button(
-                    label="💾 DESCARGAR INFORME EN WORD (.DOCX)",
-                    data=bio,
-                    file_name="Asignacion_Estructurada.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-        else:
-            st.warning("No se detectaron temas válidos para redactar.")
+        elif opcion == "Mediante Texto Manual":
+            entrada = st.text_area("Pega o escribe la lista de temas (separados por comas):", 
+                                   placeholder="Ej: Concepto y características de las células, Leyes de Mendel en la genética moderna", height=120, key=f"txt_{modo_activo}")
+            if st.button("⚙️ Cargar Temas", key=f"btn_text_{modo_activo}"):
+                if entrada:
+                    st.session_state[f'temas_{modo_activo}'] = [tema.strip() for tema in entrada.split(',') if tema.strip()]
+                    st.toast("Temas guardados.", icon="✅")
+                else:
+                    st.warning("El campo de texto está vacío.")
+
+        # Procesamiento final de los documentos
+        key_estado = f'temas_{modo_activo}'
+        if key_estado in st.session_state:
+            temas_extraidos = st.session_state[key_estado]
+            palabras_prohibidas = ["4to año", "lunes", "martes", "miércoles", "jueves", "viernes", "investigación", "entrega", "individual", "ponderación"]
+            
+            temas_finales = []
+            for t in temas_extraidos:
+                t_limpio = re.sub(r'^\d+[\s\.\:\-\"\']*', '', t).strip(' "\'')
+                if t_limpio and not any(p in t_limpio.lower() for p in palabras_prohibidas):
+                    temas_finales.append(t_limpio)
+
+            if temas_finales:
+                st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+                st.markdown("<h3 style='margin-bottom: 1rem;'>📋 Puntos identificados para desarrollo:</h3>", unsafe_allow_html=True)
+                for item in temas_finales:
+                    st.markdown(f'<div class="tema-badge">{item}</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                if st.button(f"🚀 Generar Documento ({modo_activo})", key=f"btn_run_{modo_activo}"):
+                    doc = Document()
+                    progreso = st.progress(0)
+                    status_text = st.empty()
+
+                    for i, tema in enumerate(temas_finales):
+                        numero = i + 1
+                        status_text.markdown(f"⏳ **Procesando [{numero}/{len(temas_finales)}]:** *{tema}*")
+                        
+                        t_clean = tema.replace("-", "-").replace("•", "").strip()
+                        t_clean = corregir_capitales_y_ortografia(t_clean.strip('¿?'))
+                        if len(t_clean) > 0:
+                            t_clean = t_clean[0].upper() + t_clean[1:]
+                        
+                        t_low = t_clean.lower()
+                        es_pregunta = t_low.startswith(("que", "como", "cual", "por que", "por qué", "quien", "quién", "donde", "cómo", "qué", "cuál"))
+                        titulo_final = f"{numero}. ¿{t_clean}?" if es_pregunta else f"{numero}. {t_clean}"
+
+                        # ASIGNACIÓN DE PROMPTS SEGÚN LA PESTAÑA SELECCIONADA
+                        if modo_activo == "Investigacion":
+                            es_tema_importante = any(palabra in tema.lower() for palabra in ["gobierno", "transicion", "transición", "impacto", "situacion", "situación", "leyes", "teoria"])
+                            rango_palabras = "entre 160 y 180 palabras" if es_tema_importante else "entre 115 y 125 palabras"
+                            formato_lista = " DEBES incluir una lista formal estructurada con viñetas 'Componente: descripción'." if i % 2 == 0 else " No uses listas, redacta completamente en párrafos continuos y fluidos."
+                            
+                            instrucciones_redaccion = (
+                                f"Eres un académico e investigador experto en la materia correspondiente al tema asignado. Desarrolla el punto solicitado con absoluto rigor conceptual.\n"
+                                f"REGLA CRÍTICA DE CONTEXTO: Enfócate ÚNICAMENTE en el concepto mencionado en el título de la tarea. No te desvíes.\n"
+                                f"REGLA CRÍTICA DE EXTENSIÓN: El texto completo debe tener {rango_palabras}.\n"
+                                f"No incluyas títulos en tu respuesta. Empieza directo con el desarrollo. Prohibido usar el signo de punto y coma (;).\n"
+                                f"MINÚSCULAS Y MAYÚSCULAS: Todo el texto regular debe ir en minúsculas, EXCEPTO la primera letra de cada oración y la primera letra de nombres propios.\n"
+                                f"LISTAS: Usa el símbolo •. El formato obligatorio de cada punto debe ser 'Componente: descripción breve' (máximo 20 palabras por punto).{formato_lista}"
+                            )
+                        else:
+                            instrucciones_redaccion = (
+                                f"Eres un analista de datos e historiador experto. Desarrolla un informe complejo y exhaustivo sobre el tema asignado.\n"
+                                f"REGLA DE EXTENSIÓN: Debe ser un desarrollo de largo alcance (entre 280 y 350 palabras) con alta densidad de información técnica.\n"
+                                f"REGLAS ESTRUCTURALES OBLIGATORIAS:\n"
+                                f"1. El desarrollo debe incluir obligatoriamente datos estadísticos, estimaciones numéricas o métricas relevantes para el tema.\n"
+                                f"2. Debes listar explícitamente al menos 2 acontecimientos históricos o hitos críticos asociados a este tema, indicando sus FECHAS exactas o años de suceso.\n"
+                                f"3. Prohibido usar punto y coma (;). No añadas títulos ni conclusiones genéricas, ve directo al grano.\n"
+                                f"4. Organiza la información mezclando párrafos narrativos fluidos con secciones analíticas utilizando viñetas fijas (•) para desglosar la cronología de los hechos importantes."
+                            )
+
+                        try:
+                            response = client.chat.completions.create(
+                                model="gpt-4o",
+                                messages=[
+                                    {"role": "system", "content": instrucciones_redaccion},
+                                    {"role": "user", "content": f"Desarrolle el contenido exclusivo para el punto: '{tema}'."}
+                                ],
+                                temperature=0.3
+                            )
+                            
+                            texto_generado = response.choices[0].message.content.replace("*", "").replace(";", ".")
+                            texto_generado = corregir_capitales_y_ortografia(texto_generado)
+
+                            # --- CONSTRUCCIÓN DEL WORD ---
+                            h = doc.add_paragraph()
+                            run_h = h.add_run(titulo_final)
+                            run_h.bold = True
+                            run_h.font.name = 'Canva Sans'
+                            run_h.font.size = Pt(15)
+
+                            lineas = texto_generado.split('\n')
+                            for linea in lineas:
+                                linea = linea.strip()
+                                if not linea: continue
+                                
+                                if not linea.startswith("•") and len(linea.split()) > 65:
+                                    puntos = linea.split('. ')
+                                    mitad = len(puntos) // 2
+                                    bloques = [". ".join(puntos[:mitad]) + ".", ". ".join(puntos[mitad:])] if mitad > 0 else [linea]
+                                Cav_block = bloques if len(bloques) > 0 else [linea]
+
+                                for bloque in Cav_block:
+                                    p = doc.add_paragraph()
+                                    if bloque.strip().startswith("•"):
+                                        p.add_run("• ").bold = True
+                                        cont = bloque.strip().lstrip("• ").strip()
+                                        if ":" in cont:
+                                            sub, desc = cont.split(":", 1)
+                                            run_sub = p.add_run(f"{sub.strip()}:")
+                                            run_sub.bold = True
+                                            p.add_run(desc)
+                                        else:
+                                            p.add_run(cont)
+                                        p.paragraph_format.left_indent = Pt(24)
+                                    else:
+                                        p.add_run(bloque.strip())
+                                        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                                    
+                                    for run in p.runs:
+                                        run.font.name = 'Canva Sans'
+                                        run.font.size = Pt(13)
+
+                            doc.add_paragraph()
+                        except Exception as e:
+                            st.error(f"Error generando el tema {tema}: {e}")
+                        
+                        progreso.progress(int((numero / len(temas_finales)) * 100))
+
+                    status_text.success("🎉 ¡El informe ha sido completado con éxito total!")
+                    
+                    bio = io.BytesIO()
+                    doc.save(bio)
+                    bio.seek(0)
+
+                    st.markdown('<div style="margin-top: 1rem;"></div>', unsafe_allow_html=True)
+                    st.download_button(
+                        label="💾 DESCARGAR INFORME EN WORD (.DOCX)",
+                        data=bio,
+                        file_name=f"Asignacion_{modo_activo}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        key=f"dl_{modo_activo}"
+                    )
+            else:
+                st.warning("No se detectaron temas válidos para redactar.")
+
+    # --- PESTAÑA 1: MODO INVESTIGACIÓN ---
+    with tab_investigacion:
+        st.markdown('''
+            <div class="header-banner">
+                <h1>🔬 Módulo de Investigación Académica</h1>
+                <p style="font-size: 1.1rem; font-weight: 500; margin: 0; color: #2B1B17; opacity: 0.85;">
+                    Genera respuestas analíticas, compactas y fluidas. Ideal para cuestionarios, tareas dirigidas y explicaciones conceptuales directas.
+                </p>
+            </div>
+        ''', unsafe_allow_html=True)
+        ejecutar_generador("Investigacion")
+
+    # --- PESTAÑA 2: MODO INFORME COMPLEJO ---
+    with tab_informe:
+        st.markdown('''
+            <div class="header-banner banner-informe">
+                <h1 style="color: #4A322B !important;">📊 Módulo de Informes Complejos</h1>
+                <p style="font-size: 1.1rem; font-weight: 500; margin: 0; color: #2B1B17; opacity: 0.85;">
+                    Redacción corporativa y avanzada de largo alcance. Incluye de forma obligatoria <b>métricas, estadísticas, fechas críticas y acontecimientos históricos</b> organizados de forma cronológica.
+                </p>
+            </div>
+        ''', unsafe_allow_html=True)
+        ejecutar_generador("Informe")
