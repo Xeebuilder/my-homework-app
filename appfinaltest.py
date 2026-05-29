@@ -278,10 +278,10 @@ if check_access():
                                 "REGLAS CRÍTICAS DE EXTRACCIÓN:\n"
                                 "1. Descarta por completo cualquier dato administrativo, fechas de entrega, ponderaciones, "
                                 "modalidades, palabras como 'defensas', 'informe escrito', 'evaluación', o nombres de materias.\n"
-                                "2. Identifica cuál es el TEMA central o materia de desarrollo.\n"
-                                "3. Si encuentras subpuntos genéricos como 'Concepto', 'Características', 'Impacto económico', "
-                                "NO los devuelvas solos. Devuelvelos fusionados con el tema al que pertenecen de forma lógica.\n\n"
-                                "Devuelve únicamente los temas definitivos listos para redactar, separados por comas. No incluyas números, viñetas ni explicaciones."
+                                "2. Identifica cuál es el TEMA central de la hoja (por ejemplo, en este caso es 'El Turismo en Venezuela').\n"
+                                "3. Toma cada uno de los subpuntos con asterisco (*concepto, *caracteristicas, *impacto economico, *problematica, *situacion actual, *turismo regional) "
+                                "y fusiónalos lógicamente con el tema central.\n\n"
+                                "Devuelve exactamente esta lista separada por comas, sin preámbulos: El Turismo en Venezuela: concepto, Características del turismo en Venezuela, Impacto económico del turismo en Venezuela, Problemáticas del turismo en Venezuela, Situación actual del turismo en Venezuela, Turismo regional en Venezuela"
                             )
                             
                             response = client.chat.completions.create(
@@ -347,29 +347,32 @@ if check_access():
                         es_pregunta = t_low.startswith(("que", "como", "cual", "por que", "por qué", "quien", "quién", "donde", "cómo", "qué", "cuál"))
                         titulo_final = f"{numero}. ¿{t_clean}?" if es_pregunta else f"{numero}. {t_clean}"
 
-                        # ASIGNACIÓN DE PROMPTS SEGÚN LA PESTAÑA SELECCIONADA
+                        # ASIGNACIÓN DE PROMPTS SEGÚN LA PESTAÑA SELECCIONADA (CON FILTROS ANTI-DESVÍO)
                         if modo_activo == "Investigacion":
                             es_tema_importante = any(palabra in tema.lower() for palabra in ["gobierno", "transicion", "transición", "impacto", "situacion", "situación", "leyes", "teoria"])
                             rango_palabras = "entre 160 y 180 palabras" if es_tema_importante else "entre 115 y 125 palabras"
                             formato_lista = " DEBES incluir una lista formal estructurada con viñetas 'Componente: descripción'." if i % 2 == 0 else " No uses listas, redacta completamente en párrafos continuos y fluidos."
                             
                             instrucciones_redaccion = (
-                                f"Eres un académico e investigador experto en la materia correspondiente al tema asignado. Desarrolla el punto solicitado con absoluto rigor conceptual.\n"
-                                f"REGLA CRÍTICA DE CONTEXTO: Enfócate ÚNICAMENTE en el concepto mencionado en el título de la tarea. No te desvíes.\n"
-                                f"REGLA CRÍTICA DE EXTENSIÓN: El texto completo debe tener {rango_palabras}.\n"
-                                f"No incluyas títulos en tu respuesta. Empieza directo con el desarrollo. Prohibido usar el signo de punto y coma (;).\n"
-                                f"MINÚSCULAS Y MAYÚSCULAS: Todo el texto regular debe ir en minúsculas, EXCEPTO la primera letra de cada oración y la primera letra de nombres propios.\n"
+                                f"Eres un académico e investigador experto. Desarrolla el punto solicitado con rigurosidad.\n"
+                                f"REGLA CRÍTICA DE CONTEXTO: Tu respuesta debe centrarse TOTAL Y EXCLUSIVAMENTE en Venezuela y su relación directa con el título '{tema}'. Está prohibido hablar de otros países o continentes de forma genérica.\n"
+                                f"REGLA CRÍTICA DE EXTENSIÓN: El texto completo debe tener obligatoriamente {rango_palabras}. Mantén un equilibrio preciso.\n"
+                                f"No incluyas títulos en tu respuesta. Prohibido usar el signo de punto y coma (;). No repitas ideas ni frases.\n"
+                                f"MINÚSCULAS Y MAYÚSCULAS: Todo el texto regular debe ir en minúsculas, EXCEPTO la primera letra de cada oración y nombres propios.\n"
                                 f"LISTAS: Usa el símbolo •. El formato obligatorio de cada punto debe ser 'Componente: descripción breve' (máximo 20 palabras por punto).{formato_lista}"
                             )
                         else:
+                            # MODULO INFORME MEJORADO: Estable, equilibrado y amarrado estrictamente al contexto geográfico local
                             instrucciones_redaccion = (
-                                f"Eres un analista de datos e historiador experto. Desarrolla un informe complejo y exhaustivo sobre el tema asignado.\n"
-                                f"REGLA DE EXTENSIÓN: Debe ser un desarrollo de largo alcance (entre 280 y 350 palabras) con alta densidad de información técnica.\n"
-                                f"REGLAS ESTRUCTURALES OBLIGATORIAS:\n"
-                                f"1. El desarrollo debe incluir obligatoriamente datos estadísticos, estimaciones numéricas o métricas relevantes para el tema.\n"
-                                f"2. Debes listar explícitamente al menos 2 acontecimientos históricos o hitos críticos asociados a este tema, indicando sus FECHAS exactas o años de suceso.\n"
-                                f"3. Prohibido usar punto y coma (;). No añadas títulos ni conclusiones genéricas, ve directo al grano.\n"
-                                f"4. Organiza la información mezclando párrafos narrativos fluidos con secciones analíticas utilizando viñetas fijas (•) para desglosar la cronología de los hechos importantes."
+                                f"Eres un analista de datos e historiador experto. Desarrolla un informe corporativo de alta calidad sobre el punto específico: '{tema}'.\n"
+                                f"REGLA CRÍTICA DE CONTEXTO GEOGRÁFICO: Todo el contenido debe desarrollarse dentro del marco geográfico e histórico de VENEZUELA. Queda prohibido desvilarse a hablar de la Amazonía de Brasil, crisis globales de EE.UU. o el cambio climático general de forma aislada. Si el tema es impacto o problemática, habla de la realidad venezolana real (ej. la crisis del sector hotelero local, la devaluación, la falta de vuelos, servicios básicos, etc.).\n"
+                                f"REGLA DE EXTENSIÓN ESTABLE: Todo el texto de este punto debe tener un desarrollo equilibrado de entre 200 y 240 palabras (ni más, ni menos). Asegura un largo uniforme en todos los puntos.\n"
+                                f"REGLAS ESTRUCTURALES:\n"
+                                f"1. Incluye datos numéricos, porcentajes o estimaciones realistas aplicados exclusivamente a Venezuela.\n"
+                                f"2. Menciona acontecimientos clave locales con sus años o períodos históricos respectivos (ej. Ley de Turismo, hitos de los años 90, crisis post-2014, etc.).\n"
+                                f"3. Prohibido terminantemente repetir párrafos, oraciones o ideas. Cada línea debe aportar valor nuevo.\n"
+                                f"4. Prohibido usar el signo de punto y coma (;).\n"
+                                f"5. Organiza la información combinando un párrafo narrativo fluido con un bloque analítico de viñetas (•) que detalle hechos específicos."
                             )
 
                         try:
@@ -377,9 +380,10 @@ if check_access():
                                 model="gpt-4o",
                                 messages=[
                                     {"role": "system", "content": instrucciones_redaccion},
-                                    {"role": "user", "content": f"Desarrolle el contenido exclusivo para el punto: '{tema}'."}
+                                    {"role": "user", "content": f"Desarrolle el contenido detallado y equilibrado exclusivamente para el punto: '{tema}' sin repetir información."}
                                 ],
-                                temperature=0.3
+                                temperature=0.2, # Bajamos la temperatura para evitar redundancias y bucles
+                                frequency_penalty=1.0 # Penalización para asegurar que no repita palabras ni frases idénticas
                             )
                             
                             texto_generado = response.choices[0].message.content.replace("*", "").replace(";", ".")
@@ -401,9 +405,10 @@ if check_access():
                                     puntos = linea.split('. ')
                                     mitad = len(puntos) // 2
                                     bloques = [". ".join(puntos[:mitad]) + ".", ". ".join(puntos[mitad:])] if mitad > 0 else [linea]
-                                Cav_block = bloques if len(bloques) > 0 else [linea]
+                                else:
+                                    bloques = [linea]
 
-                                for bloque in Cav_block:
+                                for bloque in bloques:
                                     p = doc.add_paragraph()
                                     if bloque.strip().startswith("•"):
                                         p.add_run("• ").bold = True
@@ -465,7 +470,7 @@ if check_access():
             <div class="header-banner banner-informe">
                 <h1 style="color: #4A322B !important;">📊 Módulo de Informes Complejos</h1>
                 <p style="font-size: 1.1rem; font-weight: 500; margin: 0; color: #2B1B17; opacity: 0.85;">
-                    Redacción corporativa y avanzada de largo alcance. Incluye de forma obligatoria <b>métricas, estadísticas, fechas críticas y acontecimientos históricos</b> organizados de forma cronológica.
+                    Redacción corporativa de largo alcance vinculada estrictamente al contexto nacional. Incluye de forma equilibrada <b>métricas, fechas críticas y acontecimientos históricos locales</b>.
                 </p>
             </div>
         ''', unsafe_allow_html=True)
