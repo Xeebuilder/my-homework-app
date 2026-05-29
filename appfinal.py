@@ -203,7 +203,7 @@ def check_access():
     input_key = st.text_input("OpenAI API Key Privada:", type="password", placeholder="sk-proj-...")
     
     if st.button("🔑 Entrar"):
-        if app_password == "miPassword123" and input_key.startswith("sk-"):
+        if app_password == "12345678" and input_key.startswith("sk-"):
             st.session_state["authenticated"] = True
             st.session_state["user_api_key"] = input_key
             st.rerun()
