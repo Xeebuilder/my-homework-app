@@ -67,7 +67,7 @@ st.markdown(f"""
     }}
     
     /* Tarjetas y Contenedores Generales */
-    .custom-card, div[data-testid="stForm"], .stTextArea, div[data-testid="stFileUploader"], div[data-testid="stTextInput"] {{
+    .custom-card, div[data-testid="stForm"], .stTextArea, div[data-testid="stFileUploader"] {{
         background-color: #FAF8F5 !important;
         border: 1px solid rgba(43, 27, 23, 0.12) !important;
         padding: 1.8rem !important;
@@ -76,7 +76,7 @@ st.markdown(f"""
         margin-bottom: 1.5rem !important;
     }}
     
-    /* Contenedor del Radio Button ultra compacto y estilizado */
+    /* CORRECCIÓN: Contenedor del Radio Button ultra compacto y estilizado */
     div[data-testid="stRadio"] {{
         background-color: #FAF8F5 !important;
         border: 1px solid rgba(43, 27, 23, 0.12) !important;
@@ -171,80 +171,38 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONTROL DE ACCESO SIMPLE & DESENCRIPCIÓN SECRETA ---
-def check_access():
-    """Verifica la contraseña y carga la API Key de forma segura desde Base64."""
-    if "authenticated" not in st.session_state:
-        st.session_state["authenticated"] = False
-    if "user_api_key" not in st.session_state:
-        st.session_state["user_api_key"] = None
+# --- Encabezado Principal Rediseñado ---
+st.markdown('''
+    <div class="header-banner">
+        <h1>📝 Generador de Asignaciones</h1>
+        <p style="font-size: 1.1rem; font-weight: 500; margin: 0; color: #2B1B17; opacity: 0.85;">
+            Transforma capturas o apuntes clave en documentos Word (.docx) perfectamente estructurados y redactados de forma profesional.
+        </p>
+    </div>
+''', unsafe_allow_html=True)
 
-    if st.session_state["authenticated"] and st.session_state["user_api_key"]:
-        return True
+# --- CONFIGURACIÓN DE LA API KEY ---
+api_key = "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"
 
-    st.markdown('''
-        <div class="header-banner">
-            <h1>🔒 Acceso Privado</h1>
-            <p style="font-size: 1rem; margin: 0; color: #2B1B17; opacity: 0.85;">
-                Introduce la contraseña de la aplicación para desbloquear la herramienta.
-            </p>
-        </div>
-    ''', unsafe_allow_html=True)
-    
-    app_password = st.text_input("Contraseña de la Aplicación:", type="password", placeholder="Escribe la clave de la app...")
-    
-    if st.button("🔑 Entrar"):
-        # Puedes cambiar "miPassword123" por la clave que quieras compartir con tus amigos
-        if app_password == "12345678":
-            try:
-                # -------------------------------------------------------------------------
-                # INSTRUCCIÓN: Reemplaza el texto de abajo por tu nueva clave en Base64
-                # -------------------------------------------------------------------------
-                key_ofuscada = "c2stcHJvai1BZlFuUnlnd2NQLTYwNEdvSEl6ZUFnRU12RXF4azNKQjVMQkdzeUNRbnc1OC0tNG5xZEhaUGVfdmZFSXh5MlR2T0pPX1ZsVzN6UlQzQmxia0ZKdWs5eWdsX2JTUE14ajBCaHhZcndxZi05T0k4UWdQQTN4d05RbFg2THdUVXNDdlA3LTNYc3RNcUt5Yll5Qlo5S01OMk9RNzRxd0E=" 
-                
-                # Desencriptación limpia directo en la memoria RAM del servidor
-                key_descifrada = base64.b64decode(key_ofuscada).decode('utf-8')
-                
-                st.session_state["authenticated"] = True
-                st.session_state["user_api_key"] = key_descifrada
-                st.rerun()
-            except Exception:
-                st.error("❌ Ocurrió un error interno al validar el acceso.")
-        else:
-            st.error("❌ Contraseña de aplicación incorrecta.")
-            
-    return False
+client = openai.OpenAI(api_key=api_key)
 
-# La aplicación corre únicamente si pasa el control interactivo
-if check_access():
+def corregir_capitales_y_ortografia(texto):
+    reemplazos = {
+        r"\bgomez\b": "Gómez",
+        r"\bperez\b": "Pérez",
+        r"\bjimenez\b": "Jiménez",
+        r"\bjuan\b": "Juan",
+        r"\bvicente\b": "Vicente",
+        r"\bmarcos\b": "Marcos",
+    }
+    for patron, reemplazo in reemplazos.items():
+        texto = re.sub(patron, reemplazo, texto, flags=re.IGNORECASE)
+    texto = re.sub(r'(^[a-z]|(?<=\.\s)[a-z])', lambda m: m.group(1).upper(), texto)
+    return texto
 
-    # Inicializamos el cliente usando la API Key extraída de forma segura
-    client = openai.OpenAI(api_key=st.session_state["user_api_key"])
-
-    # --- Encabezado Principal Rediseñado ---
-    st.markdown('''
-        <div class="header-banner">
-            <h1>📝 Generador de Asignaciones</h1>
-            <p style="font-size: 1.1rem; font-weight: 500; margin: 0; color: #2B1B17; opacity: 0.85;">
-                Transforma capturas o apuntes clave en documentos Word (.docx) perfectamente estructurados y redactados de forma profesional.
-            </p>
-        </div>
-    ''', unsafe_allow_html=True)
-
-    def corregir_capitales_y_ortografia(texto):
-        reemplazos = {
-            r"\bgomez\b": "Gómez",
-            r"\bperez\b": "Pérez",
-            r"\bjimenez\b": "Jiménez",
-            r"\bjuan\b": "Juan",
-            r"\bvicente\b": "Vicente",
-            r"\bmarcos\b": "Marcos",
-        }
-        for patron, reemplazo in reemplazos.items():
-            texto = re.sub(patron, reemplazo, texto, flags=re.IGNORECASE)
-        texto = re.sub(r'(^[a-z]|(?<=\.\s)[a-z])', lambda m: m.group(1).upper(), texto)
-        return texto
-
+if not api_key or "YOUR_ACTUAL_API_KEY" in api_key:
+    st.warning("⚠️ Por favor, introduce tu OpenAI API Key válida en el código para comenzar.")
+else:
     # Contenedor para la selección del método
     st.markdown('<div style="font-size: 1.1rem; font-weight: 700; color: #2B1B17; margin-bottom: 0.5rem;">🛠️ Método de entrada</div>', unsafe_allow_html=True)
     opcion = st.radio("Selecciona el método de entrada:", 
@@ -264,8 +222,8 @@ if check_access():
                         prompt_vision = (
                             "Analiza detalladamente esta imagen de una asignación escolar o universitaria.\n\n"
                             "REGLAS CRÍTICAS DE EXTRACCIÓN:\n"
-                            "1. Descarta por completo cualquier dato administrativo, fechas de entrega, ponderaciones, "
-                            "modalidades (ej. individual, en parejas), palabras como 'defensas', 'informe escrito', 'evaluación', o nombres de materias.\n"
+                            "1. Descarta por completo cualquier dato administrativo, fechas de entrega (ej. 13/04/26), ponderaciones, "
+                            "modalidades (ej. individual, en parejas), palabras como 'defensas', 'informe escrito', 'evaluación', o nombres de materias (ej. Soberanía Nacional).\n"
                             "2. Identifica cuál es el TEMA central o materia de desarrollo (por ejemplo: 'El Turismo en Venezuela' o 'Turismo Regional').\n"
                             "3. Si encuentras subpuntos genéricos como 'Concepto', 'Características', 'Impacto económico', 'Problemáticas' o 'Situación actual', "
                             "NO los devuelvas solos. Devuelvelos fusionados con el tema al que pertenecen de forma lógica.\n\n"
@@ -343,12 +301,12 @@ if check_access():
                         f"Eres un académico e investigador experto en la materia correspondiente al tema asignado. Desarrolla el punto solicitado con absoluto rigor conceptual.\n"
                         f"REGLA CRÍTICA DE CONTEXTO: Enfócate ÚNICAMENTE en el concepto mencionado en el título de la tarea. No te desvíes a otros temas históricos o geográficos generales a menos que el título lo pida explícitamente.\n"
                         f"REGLA CRÍTICA DE EXTENSIÓN: El texto completo debe tener {rango_palabras}.\n"
-                        f"No incliquas títulos en tu respuesta. Empieza directo con el desarrollo. Prohibido usar el signo de punto y coma (;).\n"
+                        f"No incluyas títulos en tu respuesta. Empieza directo con el desarrollo. Prohibido usar el signo de punto y coma (;).\n"
                         f"MINÚSCULAS Y MAYÚSCULAS: Todo el texto regular debe ir en minúsculas, EXCEPTO la primera letra de cada oración y la primera letra de nombres propios de personas, marcas o lugares geográficos específicos.\n"
                         f"LISTAS: Usa el símbolo •. El formato obligatorio de cada punto debe ser 'Componente: descripción breve' (máximo 20 palabras por punto)."
                     )
 
-                    formato_lista = " DEBES incluir una lista formal estruturada con viñetas 'Componente: descripción'." if i % 2 == 0 else " No uses listas, redacta completamente en párrafos continuos y fluidos."
+                    formato_lista = " DEBES incluir una lista formal estructurada con viñetas 'Componente: descripción'." if i % 2 == 0 else " No uses listas, redacta completamente en párrafos continuos y fluidos."
                     
                     try:
                         response = client.chat.completions.create(

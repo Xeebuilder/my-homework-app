@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Plataforma de Redacción Académica - Dashboard</title>
+  <script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
+  
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #E5D8C8;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #2B1B17;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .navbar {
+      width: 100%; background-color: #FAF8F5; padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid rgba(43,27,23,0.1); margin-bottom: 2rem;
+    }
+    .user-info { display: flex; align-items: center; gap: 1rem; font-weight: 600; }
+    .btn-logout { background: transparent; border: 1px solid #2B1B17; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; color: #2B1B17; font-weight: bold; }
+    
+    #app { width: 100%; max-width: 740px; padding: 0 1rem 4rem; }
+    p, span, label, li { color: #2B1B17; }
+    .header-banner { background-color: #FAF8F5; border: 1px solid rgba(43,27,23,0.15); border-radius: 16px; padding: 2.2rem; text-align: center; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+    .banner-informe { border-left: 6px solid #4A322B !important; background-color: #FDFBF7; }
+    h1 { color: #2B1B17; font-weight: 800; margin-bottom: 0.5rem; }
+    h3 { color: #2B1B17; margin-bottom: 1rem; }
+    .card { background-color: #FAF8F5; border: 1px solid rgba(43,27,23,0.12); padding: 1.8rem; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.03); margin-bottom: 1.5rem; }
+    label { display: block; font-weight: 600; font-size: 1.05rem; margin-bottom: 0.5rem; color: #2B1B17; }
+    input[type="password"], input[type="text"], textarea { width: 100%; background-color: #FAF8F5; border: 1px solid rgba(43,27,23,0.2); border-radius: 10px; padding: 0.75rem 1rem; font-size: 1rem; color: #2B1B17; font-family: inherit; outline: none; transition: border-color 0.2s; }
+    input[type="password"]:focus, input[type="text"]:focus, textarea:focus { border-color: #2B1B17; }
+    textarea { resize: vertical; }
+    .radio-group { background-color: #FAF8F5; border: 1px solid rgba(43,27,23,0.12); padding: 0.8rem 1.4rem; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.02); margin-bottom: 1.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .radio-group label { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; cursor: pointer; margin: 0; }
+    input[type="radio"] { accent-color: #2B1B17; width: 18px; height: 18px; }
+    .btn { background-color: #2B1B17; color: #FFFFFF; border: 2px solid #2B1B17; border-radius: 10px; padding: 0.65rem 1.5rem; font-weight: 600; font-size: 1rem; width: 100%; cursor: pointer; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 4px 10px rgba(43,27,23,0.15); margin-top: 0.75rem; }
+    .btn:hover { background-color: #4A322B; border-color: #4A322B; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(43,27,23,0.25); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-download { background-color: #A4D8FF; color: #101D33; border: 2px solid #A4D8FF; border-radius: 10px; padding: 0.8rem; font-weight: 700; font-size: 1.05rem; width: 100%; cursor: pointer; box-shadow: 0 6px 20px rgba(164,216,255,0.35); transition: all 0.25s ease; margin-top: 1rem; text-decoration: none; display: block; text-align: center; }
+    .btn-download:hover { background-color: #2B1B17; border-color: #2B1B17; color: #FFFFFF; transform: translateY(-2px); }
+    .tabs { display: flex; gap: 4px; margin-bottom: 0; }
+    .tab-btn { background-color: #FAF8F5; color: #2B1B17; border: 1px solid rgba(43,27,23,0.12); border-bottom: none; border-radius: 10px 10px 0 0; padding: 0.6rem 1.5rem; font-weight: 600; font-size: 1.05rem; cursor: pointer; transition: all 0.2s; }
+    .tab-btn.active { background-color: #2B1B17; color: #FFFFFF; border-color: #2B1B17; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .tab-body { background-color: #FAF8F5; border: 1px solid rgba(43,27,23,0.12); border-radius: 0 16px 16px 16px; padding: 1.8rem; margin-bottom: 1.5rem; }
+    .tema-badge { background-color: #EAE2D5; border-left: 4px solid #2B1B17; padding: 0.8rem 1.2rem; border-radius: 6px; margin-bottom: 0.6rem; font-weight: 500; color: #2B1B17; font-size: 0.95rem; }
+    .file-drop { background-color: #FFFFFF; border: 2px dashed rgba(43,27,23,0.25); border-radius: 10px; padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: 0.75rem; }
+    .file-drop:hover { border-color: #2B1B17; }
+    .file-drop input[type="file"] { display: none; }
+    .file-drop-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .file-drop p { font-size: 0.95rem; opacity: 0.75; margin: 0; }
+    .preview-img { max-width: 100%; border-radius: 12px; border: 3px solid #2B1B17; box-shadow: 0 6px 18px rgba(0,0,0,0.08); margin: 0.75rem 0; display: none; }
+    .progress-wrap { background-color: #EAE2D5; border-radius: 999px; height: 10px; width: 100%; margin: 1rem 0; overflow: hidden; }
+    .progress-bar { background-color: #2B1B17; height: 100%; width: 0%; border-radius: 999px; transition: width 0.3s ease; }
+    .status-text { font-size: 0.95rem; font-weight: 500; color: #2B1B17; margin-bottom: 0.5rem; min-height: 1.5rem; }
+    #toast { position: fixed; bottom: 2rem; right: 2rem; background-color: #2B1B17; color: #FFFFFF; padding: 0.85rem 1.4rem; border-radius: 12px; font-weight: 600; font-size: 0.95rem; box-shadow: 0 8px 24px rgba(0,0,0,0.2); opacity: 0; transform: translateY(10px); transition: opacity 0.3s, transform 0.3s; z-index: 9999; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    .alert { border-radius: 10px; padding: 0.85rem 1.2rem; margin: 0.75rem 0; font-size: 0.95rem; font-weight: 500; }
+    .alert p { margin: 0; }
+    .alert-error   { background-color: #fde8e8; border-left: 4px solid #c0392b; color: #7b241c; }
+    .alert-warning { background-color: #fef9e7; border-left: 4px solid #d4ac0d; color: #7d6608; }
+    .alert-success { background-color: #e9f7ef; border-left: 4px solid #1e8449; color: #1a5276; }
+    .section-label { font-size: 1.05rem; font-weight: 700; color: #2B1B17; margin-bottom: 0.5rem; }
+    .quota-badge { background: #2B1B17; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.85rem; margin-left: 10px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <h2>RedactaPro Dashboard</h2>
+  <div class="user-info">
+    <span id="user-email">Cargando...</span>
+    <button class="btn-logout" onclick="firebase.auth().signOut()">Salir</button>
+  </div>
+</nav>
+
+<div id="app" style="display:none;">
+
+  <!-- ═══════ MAIN APP ═══════ -->
+  <div id="main-app">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('investigacion', this)">🔬 Modo Investigación <span id="quota-inv" class="quota-badge">0/0</span></button>
+      <button class="tab-btn"        onclick="switchTab('informe', this)">📊 Modo Informe Complejo <span id="quota-inf" class="quota-badge">0/0</span></button>
+    </div>
+
+    <div id="tab-investigacion" class="tab-panel active">
+      <div class="tab-body">
+        <div class="header-banner" style="margin-bottom:1.2rem;">
+          <h1>🔬 Módulo de Investigación Académica</h1>
+          <p style="font-size:1.1rem; font-weight:500; margin:0; opacity:.85;">Genera respuestas analíticas, compactas y fluidas.</p>
+        </div>
+        <div id="gen-Investigacion"></div>
+      </div>
+    </div>
+
+    <div id="tab-informe" class="tab-panel">
+      <div class="tab-body">
+        <div class="header-banner banner-informe" style="margin-bottom:1.2rem;">
+          <h1 style="color:#4A322B;">📊 Módulo de Informes Complejos</h1>
+          <p style="font-size:1.1rem; font-weight:500; margin:0; opacity:.85;">Redacción corporativa de largo alcance vinculada estrictamente al contexto nacional.</p>
+        </div>
+        <div id="gen-Informe"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE & CONFIG
+// ═══════════════════════════════════════════
+const state = {
+  apiKey: atob('QVEuQWI4Uk42SnBsdlYxX0F3RzdJYWVfWWlLZFpDTFlidFBvRUV0WEVjX2pWczdFRFFPaXc='),
+  temas: { Investigacion: [], Informe: [] },
+  imageB64: { Investigacion: null, Informe: null },
+  imageMime: { Investigacion: 'image/jpeg', Informe: 'image/jpeg' },
+};
+
+const GEMINI_MODEL = 'gemini-3.8-flash';
+let currentUser = null;
+let userData = null;
+
+const PLAN_LIMITS = {
+  free: { informe: 0, investigacion: 0 },
+  basic: { informe: 1, investigacion: 2 },
+  student: { informe: 3, investigacion: 5 },
+  premium: { informe: 5, investigacion: 15 }
+};
+
+// ═══════════════════════════════════════════
+// AUTH & DB LISTENER
+// ═══════════════════════════════════════════
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = 'index.html'; // Redirect to landing if not logged in
+    return;
+  }
+  
+  currentUser = user;
+  document.getElementById('user-email').textContent = user.email;
+  document.getElementById('app').style.display = 'block';
+  
+  // Load User Data & Limits
+  await loadUserData();
+
+  renderGenerator('Investigacion');
+  renderGenerator('Informe');
+});
+
+async function loadUserData() {
+  const doc = await firebase.firestore().collection('users').doc(currentUser.uid).get();
+  if (doc.exists) {
+    userData = doc.data();
+    updateQuotaBadges();
+  }
+}
+
+function updateQuotaBadges() {
+  const limits = PLAN_LIMITS[userData.plan] || PLAN_LIMITS.free;
+  document.getElementById('quota-inv').textContent = `${userData.usage_investigacion}/${limits.investigacion}`;
+  document.getElementById('quota-inf').textContent = `${userData.usage_informe}/${limits.informe}`;
+}
+
+async function checkAndConsumeQuota(modo) {
+  const dbField = modo === 'Investigacion' ? 'usage_investigacion' : 'usage_informe';
+  const limits = PLAN_LIMITS[userData.plan] || PLAN_LIMITS.free;
+  const limit = modo === 'Investigacion' ? limits.investigacion : limits.informe;
+
+  if (userData[dbField] >= limit) {
+    alert(`Has alcanzado el límite de tu plan (${userData.plan}) para ${modo}. Por favor actualiza tu suscripción en el panel.`);
+    return false;
+  }
+
+  // Consume 1 credit
+  userData[dbField] += 1;
+  await firebase.firestore().collection('users').doc(currentUser.uid).update({
+    [dbField]: userData[dbField]
+  });
+  updateQuotaBadges();
+  return true;
+}
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════
+// GEMINI API HELPER
+// ═══════════════════════════════════════════
+async function geminiChat(parts, systemInstruction = null) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${state.apiKey}`;
+
+  const body = { contents: [{ role: 'user', parts }] };
+  if (systemInstruction) {
+    body.system_instruction = { parts: [{ text: systemInstruction }] };
+  }
+
+  const res  = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+
+  if (!res.ok || data.error) {
+    throw new Error(data.error ? data.error.message : `HTTP ${res.status}`);
+  }
+  return data.candidates[0].content.parts[0].text;
+}
+
+// ═══════════════════════════════════════════
+// RENDER GENERATOR UI
+// ═══════════════════════════════════════════
+function renderGenerator(modo) {
+  const container = document.getElementById('gen-' + modo);
+  container.innerHTML = `
+    <div class="section-label">🛠️ Método de entrada</div>
+    <div class="radio-group">
+      <label><input type="radio" name="mode-${modo}" value="scan" checked onchange="setMode('${modo}','scan')"/> Mediante una Imagen Scan</label>
+      <label><input type="radio" name="mode-${modo}" value="text" onchange="setMode('${modo}','text')"/> Mediante Texto Manual</label>
+    </div>
+
+    <div id="scan-panel-${modo}">
+      <div class="file-drop" onclick="document.getElementById('file-${modo}').click()">
+        <input type="file" id="file-${modo}" accept=".jpg,.jpeg,.png" onchange="handleFileUpload(event,'${modo}')"/>
+        <div class="file-drop-icon">📂</div>
+        <p>Arrastra o haz clic para seleccionar la captura de tu asignación (JPG, PNG)</p>
+      </div>
+      <img id="preview-${modo}" class="preview-img" alt="Vista previa"/>
+      <button class="btn" id="btn-scan-${modo}" style="display:none;" onclick="analizarImagen('${modo}')">✨ Analizar y Estructurar Asignación</button>
+    </div>
+
+    <div id="text-panel-${modo}" style="display:none;">
+      <label for="txt-${modo}">Pega o escribe la lista de temas (separados por comas):</label>
+      <textarea id="txt-${modo}" rows="4" placeholder="Ej: Concepto y características de las células, Leyes de Mendel en la genética moderna"></textarea>
+      <button class="btn" onclick="cargarTemas('${modo}')">⚙️ Cargar Temas</button>
+    </div>
+
+    <div id="msg-${modo}"></div>
+    <div id="temas-container-${modo}"></div>
+    <div id="generate-section-${modo}" style="display:none;">
+      <button class="btn" onclick="generarDocumento('${modo}')">🚀 Generar Documento (${modo})</button>
+    </div>
+    <div id="progress-section-${modo}" style="display:none;">
+      <div class="status-text" id="status-${modo}"></div>
+      <div class="progress-wrap"><div class="progress-bar" id="bar-${modo}"></div></div>
+    </div>
+    <div id="download-section-${modo}"></div>
+  `;
+}
+
+function setMode(modo, val) {
+  document.getElementById('scan-panel-' + modo).style.display = val === 'scan' ? 'block' : 'none';
+  document.getElementById('text-panel-' + modo).style.display = val === 'text'  ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════
+// FILE UPLOAD & PREVIEW
+// ═══════════════════════════════════════════
+function handleFileUpload(event, modo) {
+  const file = event.target.files[0];
+  if (!file) return;
+  state.imageMime[modo] = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    state.imageB64[modo] = e.target.result.split(',')[1];
+    const img = document.getElementById('preview-' + modo);
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('btn-scan-' + modo).style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════
+// ANALYZE IMAGE (Gemini Vision)
+// ═══════════════════════════════════════════
+async function analizarImagen(modo) {
+  const btn   = document.getElementById('btn-scan-' + modo);
+  const msgEl = document.getElementById('msg-' + modo);
+  btn.disabled = true;
+  btn.textContent = '⏳ La IA está leyendo los conceptos...';
+  msgEl.innerHTML = '';
+
+  const prompt =
+    "Analiza detalladamente esta imagen de una asignación escolar o universitaria.\n\n" +
+    "REGLAS CRÍTICAS DE EXTRACCIÓN:\n" +
+    "1. Descarta por completo cualquier dato administrativo, fechas de entrega, ponderaciones, " +
+    "modalidades, palabras como 'defensas', 'informe escrito', 'evaluación', o nombres de materias.\n" +
+    "2. Identifica cuál es el TEMA central de la hoja.\n" +
+    "3. Toma cada uno de los subpuntos y fusiónalos lógicamente con el tema central.\n\n" +
+    "Devuelve exactamente una lista de temas separada por comas, sin preámbulos ni títulos.";
+
+  try {
+    const text = await geminiChat([
+      { text: prompt },
+      { inline_data: { mime_type: state.imageMime[modo], data: state.imageB64[modo] } }
+    ]);
+
+    let contenido = text;
+    for (const tag of ["Tema principal:", "Tema global:", "Puntos:", "Subpuntos:", "Temas:"]) {
+      contenido = contenido.replace(tag, '');
+    }
+    state.temas[modo] = contenido.split(',').map(t => t.trim()).filter(Boolean);
+    renderTemas(modo);
+    showToast('🚀 ¡Temas leídos de forma exitosa!');
+  } catch(e) {
+    msgEl.innerHTML = `<div class="alert alert-error"><p>❌ Error analizando la imagen: ${e.message}</p></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Analizar y Estructurar Asignación';
+  }
+}
+
+// ═══════════════════════════════════════════
+// LOAD TOPICS (manual via AI)
+// ═══════════════════════════════════════════
+async function cargarTemas(modo) {
+  const entrada = document.getElementById('txt-' + modo).value.trim();
+  const msgEl   = document.getElementById('msg-' + modo);
+  const btn     = document.querySelector(`#text-panel-${modo} button`);
+  
+  if (!entrada) {
+    msgEl.innerHTML = '<div class="alert alert-warning">⚠️ El campo de texto está vacío.</div>';
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = '⏳ Organizando temas...';
+  msgEl.innerHTML = '';
+
+  const prompt = 
+    "Actúa como un experto analizador de texto. Toma el texto proporcionado (que contiene temas y subtemas desordenados, con saltos de línea rotos y paréntesis) y conviértelo en una LISTA SEPARADA POR COMAS de temas individuales y completos.\n\n" +
+    "INSTRUCCIONES ESTRICTAS:\n" +
+    "1. Si un tema principal contiene subtemas entre paréntesis o en saltos de línea, EXTRAE cada subtema y conviértelo en un tema independiente que incluya el contexto del tema principal.\n" +
+    "2. NO dejes paréntesis con pedazos de texto roto como 'meteoritos y polvo cósmico)'. Elimina los paréntesis integrando las palabras en un título lógico.\n" +
+    "3. 'geosfera' y 'biosfera' DEBEN separarse en temas distintos aunque vengan juntos en el texto.\n" +
+    "4. Cosas pequeñas y relacionadas como 'meteoritos' y 'polvo cósmico' pueden agruparse lógicamente en un solo tema.\n" +
+    "5. Tu respuesta debe ser ÚNICAMENTE la lista separada por comas.\n\n" +
+    "EJEMPLO DE ENTRADA:\n" +
+    "Componentes del Sistema Solar (el Sol\n" +
+    "planetas\n" +
+    "asteroides\n" +
+    "meteoritos y polvo cósmico)\n" +
+    "Estructura del planeta Tierra (atmósfera\n" +
+    "geosfera y biosfera)\n\n" +
+    "EJEMPLO DE SALIDA ESPERADA:\n" +
+    "El Sol como componente del Sistema Solar, Planetas del Sistema Solar, Asteroides del Sistema Solar, Meteoritos y polvo cósmico del Sistema Solar, Atmósfera del planeta Tierra, Geosfera del planeta Tierra, Biosfera del planeta Tierra\n\n" +
+    "TEXTO A ANALIZAR:\n" + entrada;
+
+  try {
+    const text = await geminiChat([{ text: prompt }]);
+    let contenido = text;
+    for (const tag of ["Tema principal:", "Tema global:", "Puntos:", "Subpuntos:", "Temas:"]) {
+      contenido = contenido.replace(tag, '');
+    }
+    state.temas[modo] = contenido.split(',').map(t => t.trim()).filter(Boolean);
+    renderTemas(modo);
+    showToast('✅ Temas organizados y guardados.');
+  } catch(e) {
+    msgEl.innerHTML = `<div class="alert alert-error"><p>❌ Error procesando el texto: ${e.message}</p></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚙️ Cargar y Organizar Temas';
+  }
+}
+
+// ═══════════════════════════════════════════
+// RENDER TOPICS
+// ═══════════════════════════════════════════
+const PALABRAS_PROHIBIDAS = ["4to año","lunes","martes","miércoles","jueves","viernes","investigación","entrega","individual","ponderación"];
+
+function limpiarTemas(temas) {
+  return temas
+    .map(t => t.replace(/^\d+[\s\.\:\-\"\']*/, '').trim().replace(/^["']|["']$/g, ''))
+    .filter(t => t && !PALABRAS_PROHIBIDAS.some(p => t.toLowerCase().includes(p)));
+}
+
+function renderTemas(modo) {
+  const temasFin = limpiarTemas(state.temas[modo]);
+  const cont     = document.getElementById('temas-container-' + modo);
+  const genSec   = document.getElementById('generate-section-' + modo);
+  if (!temasFin.length) {
+    cont.innerHTML = '<div class="alert alert-warning">⚠️ No se detectaron temas válidos para redactar.</div>';
+    genSec.style.display = 'none';
+    return;
+  }
+  let html = '<div class="card"><h3>📋 Puntos identificados para desarrollo:</h3>';
+  for (const t of temasFin) html += `<div class="tema-badge">${t}</div>`;
+  html += '</div>';
+  cont.innerHTML = html;
+  genSec.style.display = 'block';
+}
+
+// ═══════════════════════════════════════════
+// TEXT HELPERS
+// ═══════════════════════════════════════════
+function corregirCapitales(texto) {
+  const map = { 'gomez':'Gómez','perez':'Pérez','jimenez':'Jiménez','juan':'Juan','vicente':'Vicente','marcos':'Marcos' };
+  for (const [k,v] of Object.entries(map)) {
+    texto = texto.replace(new RegExp(`\\b${k}\\b`, 'gi'), v);
+  }
+  texto = texto.replace(/(^[a-z]|(?<=\.\s)[a-z])/g, c => c.toUpperCase());
+  return texto;
+}
+
+// ═══════════════════════════════════════════
+// GENERATE DOCUMENT
+// ═══════════════════════════════════════════
+async function generarDocumento(modo) {
+  const temasFin = limpiarTemas(state.temas[modo]);
+  if (!temasFin.length) return;
+
+  const allowed = await checkAndConsumeQuota(modo);
+  if (!allowed) return;
+
+  const progressSec = document.getElementById('progress-section-' + modo);
+  const downloadSec = document.getElementById('download-section-' + modo);
+  const statusEl    = document.getElementById('status-' + modo);
+  const barEl       = document.getElementById('bar-' + modo);
+  const genBtn      = document.querySelector('#generate-section-' + modo + ' button');
+
+  genBtn.disabled = true;
+  progressSec.style.display = 'block';
+  downloadSec.innerHTML = '';
+  barEl.style.width = '0%';
+
+  const bloques = [];
+
+  for (let i = 0; i < temasFin.length; i++) {
+    const tema   = temasFin[i];
+    const numero = i + 1;
+    statusEl.textContent = `⏳ Procesando [${numero}/${temasFin.length}]: ${tema}`;
+    barEl.style.width = `${Math.round((i / temasFin.length) * 100)}%`;
+
+    let tClean = tema.replace(/•/g, '').trim();
+    tClean = corregirCapitales(tClean.replace(/^[¿?]+|[¿?]+$/g, ''));
+    if (tClean.length > 0) tClean = tClean[0].toUpperCase() + tClean.slice(1);
+
+    const tLow = tClean.toLowerCase();
+    const esPregunta = /^(que|como|cual|por que|por qué|quien|quién|donde|cómo|qué|cuál)/.test(tLow);
+    const tituloFinal = esPregunta ? `${numero}. ¿${tClean}?` : `${numero}. ${tClean}`;
+
+    let systemInstruction;
+    if (modo === 'Investigacion') {
+      const important    = /gobierno|transicion|transición|impacto|situacion|situación|leyes|teoria/.test(tema.toLowerCase());
+      const rango        = important ? 'entre 160 y 180 palabras' : 'entre 115 y 125 palabras';
+      const formatoLista = (i % 2 === 0)
+        ? " DEBES incluir una lista formal estructurada con viñetas 'Componente: descripción'."
+        : " No uses listas, redacta completamente en párrafos continuos y fluidos.";
+      systemInstruction = (
+        `Eres un académico e investigador experto. Desarrolla el punto solicitado con rigurosidad.\n` +
+        `REGLA CRÍTICA DE CONTEXTO: Tu respuesta debe centrarse TOTAL Y EXCLUSIVAMENTE en Venezuela y su relación directa con el título '${tema}'. Está prohibido hablar de otros países o continentes de forma genérica.\n` +
+        `REGLA CRÍTICA DE EXTENSIÓN: El texto completo debe tener obligatoriamente ${rango}. Mantén un equilibrio preciso.\n` +
+        `No incluyas títulos en tu respuesta. Prohibido usar el signo de punto y coma (;). No repitas ideas ni frases.\n` +
+        `MINÚSCULAS Y MAYÚSCULAS: Todo el texto regular debe ir en minúsculas, EXCEPTO la primera letra de cada oración y nombres propios.\n` +
+        `LISTAS: Usa el símbolo •. El formato obligatorio de cada punto debe ser 'Componente: descripción breve' (máximo 20 palabras por punto).${formatoLista}`
+      );
+    } else {
+      systemInstruction = (
+        `Eres un analista de datos e historiador experto. Desarrolla un informe corporativo de alta calidad sobre el punto específico: '${tema}'.\n` +
+        `REGLA CRÍTICA DE CONTEXTO GEOGRÁFICO: Todo el contenido debe desarrollarse dentro del marco geográfico e histórico de VENEZUELA. Queda prohibido desviarse a hablar de la Amazonía de Brasil, crisis globales de EE.UU. o el cambio climático general de forma aislada.\n` +
+        `REGLA DE EXTENSIÓN ESTABLE: Todo el texto de este punto debe tener un desarrollo equilibrado de entre 200 y 240 palabras (ni más, ni menos). Asegura un largo uniforme en todos los puntos.\n` +
+        `REGLAS ESTRUCTURALES:\n` +
+        `1. Incluye datos numéricos, porcentajes o estimaciones realistas aplicados exclusivamente a Venezuela.\n` +
+        `2. Menciona acontecimientos clave locales con sus años o períodos históricos respectivos.\n` +
+        `3. Prohibido terminantemente repetir párrafos, oraciones o ideas. Cada línea debe aportar valor nuevo.\n` +
+        `4. Prohibido usar el signo de punto y coma (;).\n` +
+        `5. Organiza la información combinando un párrafo narrativo fluido con un bloque analítico de viñetas (•) que detalle hechos específicos.`
+      );
+    }
+
+    try {
+      let textoGenerado = await geminiChat(
+        [{ text: `Desarrolle el contenido detallado y equilibrado exclusivamente para el punto: '${tema}' sin repetir información.` }],
+        systemInstruction
+      );
+      textoGenerado = textoGenerado.replace(/\*/g, '').replace(/;/g, '.');
+      textoGenerado = corregirCapitales(textoGenerado);
+
+      bloques.push({ type: 'title', text: tituloFinal });
+
+      for (const linea of textoGenerado.split('\n')) {
+        const l = linea.trim();
+        if (!l) continue;
+        if (!l.startsWith('•') && l.split(' ').length > 65) {
+          const puntos = l.split('. ');
+          const mitad  = Math.floor(puntos.length / 2);
+          if (mitad > 0) {
+            bloques.push({ type: 'text', text: puntos.slice(0, mitad).join('. ') + '.' });
+            bloques.push({ type: 'text', text: puntos.slice(mitad).join('. ') });
+          } else {
+            bloques.push({ type: 'text', text: l });
+          }
+        } else if (l.startsWith('•')) {
+          const cont = l.replace(/^•\s*/, '').trim();
+          if (cont.includes(':')) {
+            const [sub, ...rest] = cont.split(':');
+            bloques.push({ type: 'bullet', sub: sub.trim(), desc: rest.join(':') });
+          } else {
+            bloques.push({ type: 'bullet', sub: '', desc: cont });
+          }
+        } else {
+          bloques.push({ type: 'text', text: l });
+        }
+      }
+      bloques.push({ type: 'spacer' });
+
+    } catch(e) {
+      statusEl.innerHTML = `<span style="color:#c0392b;">❌ Error en "${tema}": ${e.message}</span>`;
+    }
+  }
+
+  barEl.style.width = '100%';
+  statusEl.textContent = '🎉 ¡El informe ha sido completado con éxito total!';
+  genBtn.disabled = false;
+
+  if (bloques.length) {
+    try {
+      await buildAndDownloadDocx(bloques, modo, downloadSec);
+    } catch (e) {
+      statusEl.innerHTML = `<span style="color:#c0392b;">❌ Error creando el Word: ${e.message}</span>`;
+      console.error(e);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// BUILD DOCX
+// ═══════════════════════════════════════════
+async function buildAndDownloadDocx(bloques, modo, downloadSec) {
+  const { Document, Paragraph, TextRun, AlignmentType, Packer } = docx;
+  const children = [];
+
+  for (const b of bloques) {
+    if (b.type === 'title') {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: b.text, bold: true, size: 30, font: 'Calibri' })],
+        spacing: { before: 200, after: 100 },
+        keepNext: true
+      }));
+    } else if (b.type === 'text') {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: b.text, size: 26, font: 'Calibri' })],
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { after: 80 }
+      }));
+    } else if (b.type === 'bullet') {
+      const runs = [];
+      if (b.sub) {
+        runs.push(new TextRun({ text: `• ${b.sub}: `, bold: true, size: 26, font: 'Calibri' }));
+        runs.push(new TextRun({ text: b.desc, size: 26, font: 'Calibri' }));
+      } else {
+        runs.push(new TextRun({ text: `• ${b.desc}`, size: 26, font: 'Calibri' }));
+      }
+      children.push(new Paragraph({
+        children: runs,
+        indent: { left: 432 }, // 0.3 inches in twips (0.3 * 1440)
+        spacing: { after: 60 }
+      }));
+    } else if (b.type === 'spacer') {
+      children.push(new Paragraph({ children: [] }));
+    }
+  }
+
+  const doc  = new Document({ sections: [{ properties: {}, children }] });
+  const blob = await Packer.toBlob(doc);
+  const url  = URL.createObjectURL(blob);
+
+  downloadSec.innerHTML = '';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Asignacion_${modo}.docx`;
+  a.className = 'btn-download';
+  a.textContent = '💾 DESCARGAR INFORME EN WORD (.DOCX)';
+  downloadSec.appendChild(a);
+  a.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+</body>
+</html>
